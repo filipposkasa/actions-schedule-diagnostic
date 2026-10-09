@@ -1,0 +1,36 @@
+name: Native scheduler diagnostic
+run-name: Scheduler diagnostic (${{ github.event_name }})
+
+on:
+  push:
+    paths: ['.github/workflows/scheduler-test.yml']
+  workflow_dispatch:
+  schedule:
+    # Temporary observation window: October 9-10, 2026, at :17 and :47 UTC.
+    # Cron has no year field; disable this workflow after reviewing the test.
+    - cron: '17,47 8-23 9 10 *'
+    - cron: '17,47 0-8 10 10 *'
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Record trigger and UTC time
+        env:
+          TRIGGER: ${{ github.event_name }}
+          CRON_EXPRESSION: ${{ github.event.schedule }}
+          RUN_ID: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          printf 'event=%s\nschedule=%s\nrun_id=%s\nsha=%s\n' "$TRIGGER" "$CRON_EXPRESSION" "$RUN_ID" "$COMMIT_SHA"
+          date --utc --iso-8601=seconds
+          {
+            printf '## Native scheduler diagnostic\n\n'
+            printf '* Event: %s\n* Cron: %s\n* Run: %s\n' "$TRIGGER" "$CRON_EXPRESSION" "$RUN_ID"
+            printf '* Observed UTC: '
+            date --utc --iso-8601=seconds
+          } >> "$GITHUB_STEP_SUMMARY"
